@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Model Deployment</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f2f2f2;
+        }
+        .container {
+            text-align: center;
+        }
+        .input-container {
+            position: relative;
+            margin-bottom: 10px;
+            margin-top: 50px;
+        }
+        .heading {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .textbox {
+            width: 300px;
+            height: 150px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            resize: none;
+        }
+        .output {
+            position: absolute;
+            bottom: -120px;
+            left: 5px;
+            font-size: 20px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="heading">APA News Articles Classifier</h2>
+        <div class="input-container">
+            <textarea class="textbox" id="inputText" placeholder="Enter text here..."></textarea>
+            <p class="output" id="outputLabel">Label Output: </p>
+        </div>
+        <button onclick="predictLabel()">Predict</button>
+    </div>
+
+    <script>
+        function predictLabel() {
+            // Dummy prediction for now
+            var output = "Hello World!";
+            document.getElementById("outputLabel").innerText = "Label Output: " + output;
+        }
+    </script>
+</body>
+</html>
