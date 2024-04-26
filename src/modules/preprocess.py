@@ -82,6 +82,7 @@ class PreprocessAPA:
             return text
 
         df['text'] = df['text'].apply(word_remover)
+        return df
     
     # Removes punctuations
     def remove_punctuation(self, df, text_column: str):
