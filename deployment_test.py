@@ -7,9 +7,9 @@ app = FastAPI()
 
 # Load the classifier and vectorizer
 try:
-    with open("./models/deployment_test/classifier.pkl", "rb") as file:
+    with open("./depl_model/classifier.pkl", "rb") as file:
         clf = pickle.load(file)
-    with open("./models/deployment_test/vectorizer.pkl", "rb") as file:
+    with open("./depl_model/vectorizer.pkl", "rb") as file:
         vectorizer = pickle.load(file)
 except Exception as e:
     raise HTTPException(status_code=500, detail=f"Failed to load model: {e}")
