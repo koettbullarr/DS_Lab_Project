@@ -1,5 +1,4 @@
 import pandas as pd
-import string
 import re
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
@@ -8,137 +7,90 @@ from nltk.tokenize import word_tokenize
 class PreprocessAPA:
     
     # Initialize the paths
-    def __init__(self, interview_path, letters_path, comments_path):
-        self.interview_path = interview_path
-        self.letters_path = letters_path
-        self.comments_path = comments_path
+    def __init__(self):
         self.stop_words = set(stopwords.words('german'))
         self.stemmer = SnowballStemmer("german")
     
-    # Load the data with pandas
-    def load_data(self):
-        interview = pd.read_json(self.interview_path, lines=True)
-        letters = pd.read_json(self.letters_path, lines=True)
-        comments = pd.read_json(self.comments_path, lines=True)
-        return interview, letters, comments
-    
-    # Extract the labels because they're lists
-    def extract_labels(self, data):
+    def preprocess_data(self, interview: str, letters: str, comments: str):
+        
+        interview = pd.read_json(open(interview), lines=True)
+        letters = pd.read_json(open(letters), lines=True)
+        comments = pd.read_json(open(comments), lines=True)
+        
+        data = [interview, letters, comments]
+
+        # Extract data from list values in "labels" column
         for i in range(len(data)):
             data[i]['labels'] = data[i]['labels'].apply(lambda x: x[0])
+            
+        interview = data[0]
+        letters = data[1]
+        comments = data[2]
+        
+        # Label if relevant, else: NON-RELEVANT
+        interview['labels'] = interview['labels'].apply(lambda x: "interview" if x == "RELEVANT" else x)
+        letters['labels'] = letters['labels'].apply(lambda x: "letter" if x == "RELEVANT" else x)
+        comments['labels'] = comments['labels'].apply(lambda x: "comment" if x == "RELEVANT" else x)
+        
+        # Concatnate the data
+        data = pd.concat([interview, letters, comments], ignore_index=True).drop_duplicates(subset=['labels', 'text'])
+        
+        
+        # HANDLE DUPLICATED LABELS
+        print("Handling duplicates")
+        duplicates = data[data.duplicated(subset='text', keep=False)][['labels', 'text']].groupby('text')['labels'].apply(list).reset_index()
+        duplicates['len'] = duplicates['labels'].apply(lambda x: len(x))
+        tripple_duplicates = duplicates[duplicates['len'] == 3]
+        if len(tripple_duplicates) >= 100:
+            print(f"WARNING: deleting {len(tripple_duplicates)} rows")
+        data = data[~data['text'].isin(tripple_duplicates['text'])]
+        double_duplicates = duplicates[duplicates['len']==2]
+        to_delete = data[data['text'].isin(double_duplicates['text'])][data['labels']=='NONRELEVANT']
+        to_delete_indicies = to_delete.index
+        data = data.drop(to_delete_indicies)
+        if len(data[data.duplicated(subset="text")]) == 0:
+            print("Deduplicated successfully")
+            print("Data preprocessed successfully")
+        else:
+            print("Deduplication not successful")
+            print(data[data.duplicated(subset="text")])
+            
         return data
-    
-    
-    def filter_relevant(self, data):
         
-        """
-        THIS FUNCTION FILTERS DATA TO INCLUDE ONLY RELEVANT DATA
 
-        Returns:
-            _type_: _pd.DataFrame_
-        """
+    def preprocess_text(self, data):
         
-        for i in range(len(data)):
-            data[i] = data[i][data[i]['labels'] == 'RELEVANT']
-        return data
-    
-    
-    def rewrite_labels(self, data):
-        
-        """
-        THIS FUNCTION CAN ONLY BE USED AFTER USAGE OF filter_relevant()
-        REWRITES THE LABELS
-
-        Returns:
-            _type_: _pd.DataFrame_
-        """
-        
-        for i in range(len(data)):
-            if i == 0:
-                data[i].loc[:, 'labels'] = 'interview'
-            elif i == 1:
-                data[i].loc[:, 'labels'] = 'letter'
-            else:
-                data[i].loc[:, 'labels'] = 'comment'
-        return data
-    
-    # Concats the data
-    def concat_data(self, data):
-        return pd.concat(data, ignore_index=True)
-    
-    def preprocess_text(self, df):
-        
-        """
-        DELETES WORDS "LESERPOST" AND "LESERBRIEF"
-
-        Returns:
-            _type_: _pd.DataFrame_
-        """
         words = ['leserpost', 'leserbrief']
         def word_remover(text):
             text = text.lower()
             for word in words:
                 text = text.replace(word,'')
             return text
+        
+        data = data.copy()
+        data['text'] = data['text'].apply(word_remover) # Remove all unnecessary words
+        data['text'] = data['text'].apply(lambda text: re.sub(r'[^\w\s\d]', '', text)) # Replace all punctuations except, spaces, words and numbers
+        data['text'] = data['text'].apply(lambda text: re.sub(r'\s+', ' ', text))  # Replace multiple whitespaces with a single space
+        data['text'] = data['text'].apply(lambda text: text.strip()) # Strip all text in each row
+        return data
 
-        df['text'] = df['text'].apply(word_remover)
-        return df
     
-    # Removes punctuations
-    def remove_punctuation(self, df, text_column: str):
-        def remove_special_chars(text):
-            translator = str.maketrans('', '', string.punctuation)
-            return text.translate(translator)
+    def ml_text_preproc(self, data, text_column: str, label_column: str, full_preproc: bool):
         
-        df.loc[:, text_column] = df[text_column].apply(remove_special_chars)
-        return df
-    
-
-    # Replace whitespaces with " "
-    def remove_whitespace(self, df, text_column: str):
-        """
-        Replaces all chars like newline or tabline with space
-
-        Args:
-            df (_type_): _description_
-            text_column (str): _description_
-        """
-        def clean_whitespaces(text):
-            translator = str.maketrans(string.whitespace, ' ' * len(string.whitespace))
-            return text.translate(translator)
-        
-        def reduce_spaces(text):
-            return re.sub(r'\s+', ' ', text)
-        
-        df.loc[:, text_column] = df[text_column].apply(clean_whitespaces)
-        df.loc[:, text_column] = df[text_column].apply(reduce_spaces)
-        
-        return df
-    
-    def ml_text_preproc(self, df, text_column: str, 
-                        label_column: str, full_preproc: bool):
-        
-        """
-        PREPROCESSES TEXT FOR MACHINE LEARNING
-        
-        1) CREATES LABEL IDS IF LABEL == TYPE OBJECT
-        2) IF FULL PREPROC ACTIVATED, DOES FULL ML PREPROC
-        """
-        def first_preproc(text):
+        def preprocess_text(text):
             # Remove URLs
             text = re.sub(r'http\S+', '', text)
-            # Tokenization and lowercasing
+            # Tokenization, lowercasing, and removing stopwords
             words = word_tokenize(text.lower())
-            # Removing stopwords and Stemming
-            #REMOVED self.stemmer.stem(word) AND REPLACED WITH word
             cleaned_words = [word for word in words if word.isalnum() and word.lower() not in self.stop_words]
             return ' '.join(cleaned_words)
         
+        df = data.copy()
         if full_preproc:
-            df.loc[:, text_column] = df[text_column].apply(first_preproc)
+            df[text_column] = df[text_column].apply(preprocess_text)
             
         if df[label_column].dtype == "O":
-            df.loc[:, "label_ids"] = df[label_column].factorize()[0]
+            df["label_ids"] = df[label_column].factorize()[0]
             
         return df
             
