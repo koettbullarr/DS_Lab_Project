@@ -1,4 +1,6 @@
 import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
 import re
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
@@ -93,5 +95,38 @@ class PreprocessAPA:
             df["label_ids"] = df[label_column].factorize()[0]
             
         return df
+    
+    def split_data(self, data, test_val: bool, n_samples_train: int, test_split_ratio = 0.5):
+        
+        """
+        Example usage:
+        
+        if splitted into train,test and validation:
+        
+        train, test, val = obj.split_data(data, test_val=True, n_samples_train=500, test_split_ratio=0.5)
+        
+        train, test = obj.split_data(data, test_val=False, n_samples_train=500)
+        
+        Returns: balanced trainset and testset as they are.
+        
+        """
+        
+        balanced_train_set = pd.DataFrame()
+        for label_id in data['label_ids'].unique():
+            label_data = data[data['label_ids'] == label_id]
+            sampled_data = label_data.sample(n=n_samples_train, random_state=42)
+            balanced_train_set = pd.concat([balanced_train_set, sampled_data], ignore_index=True)
+
+        # Create the test set with the remaining data
+        test_set = data.drop(balanced_train_set.index)
+
+        # Shuffle the balanced training set
+        balanced_train_set = shuffle(balanced_train_set, random_state=42)
+        
+        if test_val:
+            testset, valset = train_test_split(test_set, test_size=test_split_ratio)
+            return balanced_train_set, testset, valset
+        else:
+            return balanced_train_set, test_set
             
             
