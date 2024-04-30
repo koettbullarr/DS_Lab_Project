@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -25,11 +26,10 @@ class ML_Models():
         self.y_train = None
         self.y_test = None
         
-    def run(self, ml_df):
-        X = ml_df['text']
-        y = ml_df['label_ids']
+    def run(self, train, test):
         
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_train, y_train = train['text'], train['label_ids']
+        X_test, y_test = test['text'], test['label_ids']
 
         self.X_train = X_train
         self.X_test = X_test
@@ -65,16 +65,21 @@ class ML_Models():
             # Performance metrics
             accuracy = round(accuracy_score(y_test, y_pred), 2)
             # Get precision, recall, f1 scores
-            precision, recall, f1score, support = score(y_test, y_pred, average='weighted')
+            precision_macro, recall_macro, f1score_macro, _ = score(y_test, y_pred, average='macro')
+            precision_weighted, recall_weighted, f1score_weighted, _ = score(y_test, y_pred, average='weighted')
             print(f"{model_name}\n{classification_report(y_test, y_pred)}\n")
 
             # Add performance parameters to list
             perform_list.append(dict([
                 ('Model', model_name),
                 ('Test Accuracy', round(accuracy, 2)),
-                ('Precision', round(precision, 2)),
-                ('Recall', round(recall, 2)),
-                ('F1', round(f1score, 2))]))
+                ('Precision (Macro)', round(precision_macro, 2)),
+                ('Recall (Macro)', round(recall_macro, 2)),
+                ('F1 (Macro)', round(f1score_macro, 2)),
+                ('Precision (Weighted)', round(precision_weighted, 2)),
+                ('Recall (Weighted)', round(recall_weighted, 2)),
+                ('F1 (Weighted)', round(f1score_weighted, 2))
+                ]))
 
         model_names = ['Logistic Regression', 'Random Forest', 'Naive Bayes', 
                        'Support Vector Classifer','Decision Tree Classifier']
@@ -84,18 +89,46 @@ class ML_Models():
 
         # Create Dataframe of Model, Accuracy, Precision, Recall, and F1
         model_performance = pd.DataFrame(data=perform_list)
-        model_performance = model_performance[['Model', 'Test Accuracy', 'Precision', 'Recall', 'F1']]
+        model_performance = model_performance[['Model', 'Test Accuracy', 'Precision (Macro)', 'Recall (Macro)', 
+                                               'F1 (Macro)', 'Precision (Weighted)', 'Recall (Weighted)', 'F1 (Weighted)']]
         model_performance = model_performance.set_index('Model')
         return model_performance
 
-    def plot_performance(self, model_performance):
-        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(8,8))
-
-        model_performance['Test Accuracy'].sort_values(ascending=False).plot(kind='bar', ax=ax[0,0], rot=45, title="Test accuracy", xlabel="")
-        model_performance['Precision'].sort_values(ascending=False).plot(kind='bar', ax=ax[0,1], rot=45, title="Precision", xlabel="")
-        model_performance['Recall'].sort_values(ascending=False).plot(kind='bar', ax=ax[1,0], rot=45, title="Recall", xlabel="")
-        model_performance['F1'].sort_values(ascending=False).plot(kind='bar', ax=ax[1,1], rot=45, title="F1", xlabel="")
-        fig.tight_layout()
+    def plot_performance(self, model_performance, average_val: str):
+        
+        if average_val == "weighted":
+            
+            fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(8,8))
+            model_performance['Test Accuracy'].sort_values(ascending=False).plot(kind='bar', ax=ax[0,0], rot=45, title="Test accuracy", xlabel="")
+            model_performance['Precision (Weighted)'].sort_values(ascending=False).plot(kind='bar', ax=ax[0,1], rot=45, title="Precision", xlabel="")
+            model_performance['Recall (Weighted)'].sort_values(ascending=False).plot(kind='bar', ax=ax[1,0], rot=45, title="Recall", xlabel="")
+            model_performance['F1 (Weighted)'].sort_values(ascending=False).plot(kind='bar', ax=ax[1,1], rot=45, title="F1", xlabel="")
+            fig.suptitle("Performance Metrics (Weighted Avg)", fontsize=16)
+            fig.tight_layout()
+            
+        elif average_val == "macro":
+            
+            fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(8,8))
+            model_performance['Test Accuracy'].sort_values(ascending=False).plot(kind='bar', ax=ax[0,0], rot=45, title="Test accuracy", xlabel="")
+            model_performance['Precision (Macro)'].sort_values(ascending=False).plot(kind='bar', ax=ax[0,1], rot=45, title="Precision", xlabel="")
+            model_performance['Recall (Macro)'].sort_values(ascending=False).plot(kind='bar', ax=ax[1,0], rot=45, title="Recall", xlabel="")
+            model_performance['F1 (Macro)'].sort_values(ascending=False).plot(kind='bar', ax=ax[1,1], rot=45, title="F1", xlabel="")
+            fig.suptitle("Performance Metrics (Macro Avg)", fontsize=16)
+            fig.tight_layout()
+            
+        else:
+            
+            fig, ax = plt.subplots(nrows=4, ncols=2, figsize=(16,16))
+            model_performance['Test Accuracy'].sort_values(ascending=False).plot(kind='bar', ax=ax[0,0], rot=45, title="Test accuracy", xlabel="")
+            model_performance['Precision (Weighted)'].sort_values(ascending=False).plot(kind='bar', ax=ax[1,0], rot=45, title="Precision (Weighted)", xlabel="")
+            model_performance['Recall (Weighted)'].sort_values(ascending=False).plot(kind='bar', ax=ax[2,0], rot=45, title="Recall (Weighted)", xlabel="")
+            model_performance['F1 (Weighted)'].sort_values(ascending=False).plot(kind='bar', ax=ax[3,0], rot=45, title="F1 (Weighted)", xlabel="")
+            model_performance['Precision (Macro)'].sort_values(ascending=False).plot(kind='bar', ax=ax[1,1], rot=45, title="Precision (Macro)", xlabel="")
+            model_performance['Recall (Macro)'].sort_values(ascending=False).plot(kind='bar', ax=ax[2,1], rot=45, title="Recall (Macro)", xlabel="")
+            model_performance['F1 (Macro)'].sort_values(ascending=False).plot(kind='bar', ax=ax[3,1], rot=45, title="F1 (Macro)", xlabel="")
+            fig.suptitle("Performance Metrics", fontsize=16)
+            fig.tight_layout()
+            
         
 
         
@@ -240,4 +273,36 @@ class ML_Models():
             print("Model name not defined!")
             return
             
+            
+class ML_Binary(ML_Models):
+    
+    def __init__(self):
+        
+        super().__init__()
+        
+    def run_lr(self):
+        
+        classifiers = {}
+
+
+        for label in [0, 1, 2, 3]:
+            clf = LogisticRegression()
+            y_train_binary = (self.y_train == label).astype(int)
+            clf.fit(self.X_train_vectorized, y_train_binary)
+            classifiers[label] = clf
+
+        predictions_proba = {}
+
+        for label, clf in classifiers.items():
+            predictions_proba[label] = clf.predict_proba(self.X_test_vectorized)[:, 1]
+
+
+        combined_predictions = np.argmax(np.array(list(predictions_proba.values())), axis=0)
+
+        print(classification_report(self.y_test, combined_predictions))
+        return predictions_proba
+            
+        
+    
+    
 
