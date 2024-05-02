@@ -6,39 +6,37 @@ from tensorflow.keras.callbacks import EarlyStopping
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
-class RNN():
+class RNN:
     
     def __init__(self):
         self.max_words = 10000
         self.max_len = 500 # Actual max_len == 1766 but we use 500 because of the comp costs
         self.embedding = None
-        self.num_classes = 3
+        self.num_classes = 4
         self.X_train = None
         self.X_test = None
+        self.X_val = None
         self.y_train = None
         self.y_test = None
+        self.y_val = None
         self.train_seq = None
         self.test_seq = None
-
+        self.val_seq = None
         
-    def train_test(self, df, X_col: str, y_col: str):
-        X = df[X_col]
-        y = df[y_col]
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        self.X_train = X_train
-        self.X_test = X_test
-        self.y_train = y_train
-        self.y_test = y_test
-        print("Attributes updated, use <self.X_train> etc. to use values")
+    def tokenize(self, train, test, val=None):
         
-    def tokenize(self):
+        self.X_train, self.X_test = train['text'], test['text']
+        self.y_train, self.y_test = train['label_ids'], test['label_ids']
         
         tokenizer = Tokenizer(num_words=self.max_words)
         tokenizer.fit_on_texts(self.X_train)
-        sequences = tokenizer.texts_to_sequences(self.X_train)
-        test_seq = tokenizer.texts_to_sequences(self.X_test)
-        self.train_seq = sequences
-        self.test_seq = test_seq
+        self.train_seq = tokenizer.texts_to_sequences(self.X_train)
+        self.test_seq = tokenizer.texts_to_sequences(self.X_test)
+        
+        if val is not None and not val.empty:
+            self.X_val, self.y_val = val['text'], val['label_ids']
+            self.val_seq = tokenizer.texts_to_sequences(self.X_val)
+            
         print("Attributes updated, use <self.train_seq> etc. to use values")
     
     def pad_and_label_preproc(self):
@@ -48,9 +46,14 @@ class RNN():
         X_test = pad_sequences(self.test_seq, maxlen = self.max_len)
         y_test = tf.keras.utils.to_categorical(self.y_test, self.num_classes)
         
+        if self.val_seq != None:
+            X_val = pad_sequences(self.val_seq, maxlen=self.max_len)
+            y_val = tf.keras.utils.to_categorical(self.y_val, self.num_classes)
+            return  X_train, X_test, X_val, y_train, y_test, y_val
+        
         return X_train, X_test, y_train, y_test
     
-    def build_model(self, use_basic_embed: bool, reshape=50):
+    def build_model(self, use_basic_embed: bool, reshape=50, optimizer = "adam"):
         
         if use_basic_embed:
             
@@ -67,7 +70,7 @@ class RNN():
             model.add(Dense(128, activation='relu'))
             model.add(Dropout(0.4))
             model.add(Dense(self.num_classes, activation='softmax'))
-            model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+            model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
             
         else:
             model = Sequential()
@@ -83,8 +86,8 @@ class RNN():
             model.add(Dropout(0.4))
             model.add(Dense(128, activation='relu'))
             model.add(Dropout(0.4))
-            model.add(Dense(3, activation='softmax'))
-            model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+            model.add(Dense(self.num_classes, activation='softmax'))
+            model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
 
         print(model.summary())
         
@@ -95,41 +98,28 @@ class RNN():
 
 
 
-class CNN():
+class CNN(RNN):
     
     def __init__(self):
-        self.max_words = 10000
-        self.max_len = 500 # Actual max_len == 1766 but we use 500 because of the comp costs
-        self.embedding = None
-        self.num_classes = 3
-        self.X_train = None
-        self.X_test = None
-        self.y_train = None
-        self.y_test = None
-        self.train_seq = None
-        self.test_seq = None
+        
+        super().__init__()
         self.filters = 16
         self.kernel_size = 3
-
         
-    def train_test(self, df, X_col: str, y_col: str):
-        X = df[X_col]
-        y = df[y_col]
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        self.X_train = X_train
-        self.X_test = X_test
-        self.y_train = y_train
-        self.y_test = y_test
-        print("Attributes updated, use <self.X_train> etc. to use values")
+    def tokenize(self, train, test, val=None):
         
-    def tokenize(self):
+        self.X_train, self.X_test = train['text'], test['text']
+        self.y_train, self.y_test = train['label_ids'], test['label_ids']
         
         tokenizer = Tokenizer(num_words=self.max_words)
         tokenizer.fit_on_texts(self.X_train)
-        sequences = tokenizer.texts_to_sequences(self.X_train)
-        test_seq = tokenizer.texts_to_sequences(self.X_test)
-        self.train_seq = sequences
-        self.test_seq = test_seq
+        self.train_seq = tokenizer.texts_to_sequences(self.X_train)
+        self.test_seq = tokenizer.texts_to_sequences(self.X_test)
+        
+        if val is not None and not val.empty:
+            self.X_val, self.y_val = val['text'], val['label_ids']
+            self.val_seq = tokenizer.texts_to_sequences(self.X_val)
+            
         print("Attributes updated, use <self.train_seq> etc. to use values")
     
     def pad_and_label_preproc(self):
@@ -139,9 +129,14 @@ class CNN():
         X_test = pad_sequences(self.test_seq, maxlen = self.max_len)
         y_test = tf.keras.utils.to_categorical(self.y_test, self.num_classes)
         
+        if self.val_seq != None:
+            X_val = pad_sequences(self.val_seq, maxlen=self.max_len)
+            y_val = tf.keras.utils.to_categorical(self.y_val, self.num_classes)
+            return  X_train, X_test, X_val, y_train, y_test, y_val
+        
         return X_train, X_test, y_train, y_test
     
-    def build_model(self, use_basic_embed: bool, reshape=50, add_globalmaxpool=False):
+    def build_model(self, use_basic_embed: bool, reshape=50, add_globalmaxpool=False, optimizer="adam"):
         
         if use_basic_embed:
             
@@ -166,7 +161,7 @@ class CNN():
             model.add(Dropout(0.5))
 
             model.add(Dense(self.num_classes, activation='softmax'))
-            model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+            model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
             
         else:
             model = Sequential()
@@ -189,7 +184,7 @@ class CNN():
             model.add(Dropout(0.3))
 
             model.add(Dense(self.num_classes, activation='softmax'))
-            model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+            model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
 
         print(model.summary())
         
