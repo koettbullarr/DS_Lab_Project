@@ -6,6 +6,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
+
 class RNN:
     
     def __init__(self):
