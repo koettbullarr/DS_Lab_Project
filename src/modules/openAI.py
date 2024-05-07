@@ -14,7 +14,7 @@ class OpenAI:
         response = openai.ChatCompletion.create(
             model=model,
             messages=[
-                {"role": "system", "content": "Bitte ordnen Sie den folgenden Text einer dieser Kategorien zu: Interview, Leserbrief, Kommentar oder keine von drei. Bei Interview geht es haupsächlich um die Beantwortung von Fragen, often über sich selbst, manchmal auch in Form eines Dialogs. Ein Leserbrief ist eine Meinungsäußerung auf den Inhalt eines Artikel, oft länger als Kommentar. Kommentar ist oft ein kurzen Meinungsbeitrag. Zu keiner der drei Kategorien können einfache info Nachrichte gehören. Als Antwort geben Sie nur Wert '1', wenn das ein Interview ist, '2' wenn ein Leserbrief, '3' wenn ein Kommentar oder '0' wenn keine von diesen Kategorien an."},
+                {"role": "system", "content": "Bitte ordnen Sie den folgenden Text einer dieser Kategorien zu: Interview, Leserbrief, Kommentar oder keine von drei. Bei Interview geht es haupsächlich um die Beantwortung von Fragen, often über sich selbst, manchmal auch in Form eines Dialogs. Ein Leserbrief ist eine Meinungsäußerung auf den Inhalt eines Artikel, oft länger als Kommentar. Kommentar ist oft ein kurzen Meinungsbeitrag. Zu keiner der drei Kategorien können einfache info Nachrichte gehören. Als Antwort geben Sie nur Wert '0', wenn das ein Interview ist, '2' wenn ein Leserbrief, '3' wenn ein Kommentar oder '1' wenn keine von diesen Kategorien an."},
                 {"role": "user", "content": text}
             ]
         )
