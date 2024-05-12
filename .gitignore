@@ -2,6 +2,7 @@
 src/data/
 src/modules/SECRETS.py
 models/
+.vscode
 
 #PYTHON GITIGNORE
 

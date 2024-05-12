@@ -83,7 +83,7 @@ class PreprocessAPA:
             # Remove URLs
             text = re.sub(r'http\S+', '', text)
             # Tokenization, lowercasing, and removing stopwords
-            words = word_tokenize(text.lower())
+            words = word_tokenize(text.lower(), language="german")
             cleaned_words = [word for word in words if word.isalnum() and word.lower() not in self.stop_words]
             return ' '.join(cleaned_words)
         
