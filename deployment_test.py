@@ -14,6 +14,7 @@ try:
 except Exception as e:
     raise HTTPException(status_code=500, detail=f"Failed to load model: {e}")
 
+
 # Define label mapping
 label_mapping = {
     0: "interview",
