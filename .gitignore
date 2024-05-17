@@ -3,6 +3,7 @@ src/data/
 src/modules/SECRETS.py
 models/
 .vscode
+src/post_feedback_work/runs
 
 #PYTHON GITIGNORE
 
